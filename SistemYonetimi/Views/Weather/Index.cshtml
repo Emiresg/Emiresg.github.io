@@ -1,0 +1,160 @@
+﻿@using SistemYonetimi.Models
+@model List<Log>
+@{ ViewData["Title"] = "Home Page"; }
+
+<div id="containerInner" class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <div class="col-md-12 mb-2">
+        <label class="col-md-2">
+            <input type="radio" value="imperial" v-model="mode">Imperial (°F)
+        </label>
+        <label class="col-md-2">
+            <input type="radio" value="metric" v-model="mode">Metric (°C)
+        </label>
+    </div>
+    <div class="col-md-12 mb-2">
+        <select v-model="selectedCountry" @@change="getCity">
+            <option v-for="country in countries" :value="country">{{country}}</option>
+        </select>
+    </div>
+    <div class="col-md-12 mb-2" v-if="cities.length" @@change="getWeather">
+        <select v-model="selectedCity">
+            <option v-for="city in cities" :value="city">{{city}}</option>
+        </select>
+    </div>
+    <div class="col-md-12" v-if="!!weather.dt">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Location</th>
+                    <th>Time</th>
+                    <th>Wind</th>
+                    <th>Visibility</th>
+                    <th>Sky Condition</th>
+                    <th>Temperature</th>
+                    <th>Dew Point</th>
+                    <th>Humidity</th>
+                    <th>Pressure</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{weather.coord.lon}} , {{weather.coord.lat}}</td>
+                    <td>{{new Date(weather.dt*1000)}}</td>
+                    <td>{{weather.wind.speed}} , {{weather.wind.deg}}</td>
+                    <td>{{weather.visibility}}</td>
+                    <td>
+                        {{weather.clouds.all}}
+                    </td>
+                    <td>{{tempBasedonMode}}</td>
+                    <td>{{dewBasedonMode}}</td>
+                    <td>{{weather.main.humidity.toFixed(2)}}</td>
+                    <td>{{weather.main.pressure.toFixed(2)}}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<table>
+        <tr>
+            <th>IP</th>
+            <th>Bağlanma Tarihi</th>
+        </tr>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.UserIP</td>
+                <td>@item.UserLoginTime</td>
+            </tr>
+        }
+    </table>
+
+<script>
+    var weather = new Vue({
+        el: '#containerInner',
+        computed: {
+            tempBasedonMode: function () {
+                return this.mode === 'imperial' ?
+                    `${this.weather.main.temp_f.toFixed(2)} °F` :
+                    `${this.weather.main.temp.toFixed(2)} °C`;
+            },
+            dewBasedonMode: function () {
+                return this.mode === 'imperial' ?
+                    `${this.weather.main.dew_point_f.toFixed(2)} °F` :
+                    `${this.weather.main.dew_point.toFixed(2)} °C`;
+            }
+        },
+        created() {
+        },
+        beforeMount() {
+            this.getCountry();
+        },
+        filters: {
+        },
+        mounted() {
+        },
+        watch: {
+        },
+        data: {
+            mode: 'imperial',
+            countries: [],
+            selectedCountry: '',
+            cities: [],
+            selectedCity: '',
+            weather: {}
+        },
+        methods: {
+            getCountry: function () {
+                var self = this;
+                $.ajax({
+                    type: 'GET',
+                    url: "/Weather/Country",
+                    cache: false,
+                    dataType: "json",
+                    success: function (response) {
+                        self.countries = ['Please Choose', ...response.data];
+                        self.selectedCountry = 'Please Choose';
+                    },
+                    beforeSend: function () {
+                    },
+                    complete: function () {
+                    }
+                });
+            },
+            getCity: function () {
+                var self = this;
+                $.ajax({
+                    type: 'GET',
+                    url: '/Weather/City?country=' + self.selectedCountry,
+                    cache: false,
+                    dataType: "json",
+                    success: function (response) {
+                        self.cities = ['Please Choose', ...response.data];
+                        self.selectedCity = 'Please Choose';
+                    },
+                    beforeSend: function () {
+                    },
+                    complete: function () {
+                    }
+                });
+            },
+            getWeather: function () {
+                var self = this;
+                $.ajax({
+                    type: 'GET',
+                    url: '/Weather/GetWeather?city=' + self.selectedCity,
+                    cache: false,
+                    dataType: "json",
+                    success: function (response) {
+                        self.weather = response.data;
+                    },
+                    beforeSend: function () {
+                    },
+                    complete: function () {
+                    }
+                });
+            }
+        }
+    });
+</script>
